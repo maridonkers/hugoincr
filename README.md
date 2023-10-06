@@ -6,5 +6,8 @@ The Hugo static site generator produces a site in a public directory but it does
 
 ## Releases
 
-Linux: [binaries-linux-x64-static](http://)
+Linux: [binaries-linux-x64-static](https://github.com/maridonkers/hugoincr/actions/runs/6430699989)
 
+## Blog article
+
+[Incrementer for generated Hugo site](https://photonsphere.org/post/2023-10-06-hugoincr/)

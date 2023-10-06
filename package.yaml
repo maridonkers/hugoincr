@@ -1,0 +1,80 @@
+name:                hugoincr
+version:             0.1.0.0
+github:              "maridonkers/hugoincr"
+license:             BSD-3-Clause
+author:              "A.H.M. (Mari) Donkers"
+maintainer:          "a.h.m.donkers@photonsphere.org"
+copyright:           "2023 A.H.M. (Mari) Donkers"
+
+extra-source-files:
+- README.md
+- CHANGELOG.md
+- LICENSE
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/maridonkers/hugoincr#readme>
+
+# Override -O2 building with stack build --fast
+ghc-options:
+- -O2
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
+library:
+  source-dirs: src
+  # ghc-options: [-threaded]
+  dependencies:
+  - base >= 4.7 && < 5
+  - bytestring
+  - conduit
+  - conduit-extra
+  - cryptonite
+  - cryptonite-conduit
+  - directory
+  - memory
+  - monad-logger
+  - mtl
+  - persistent
+  - persistent-sqlite
+  - text
+  - time
+
+executables:
+  hugoincr:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base >= 4.7 && < 5
+    - directory
+    - filepath
+    - optparse-applicative
+    - hugoincr
+
+tests:
+  hugoincr-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base >= 4.7 && < 5
+    - hugoincr

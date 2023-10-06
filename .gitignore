@@ -1,0 +1,10 @@
+.stack-work/
+*~
+/.emacs.desktop
+/.emacs.desktop.lock
+/dist-newstyle/
+/hugoincr
+/.hugoincr.db
+/.hugoincr.db-shm
+/.hugoincr.db-wal
+/public/

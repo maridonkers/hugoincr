@@ -8,3 +8,4 @@
 /.hugoincr.db-shm
 /.hugoincr.db-wal
 /public/
+/releases/

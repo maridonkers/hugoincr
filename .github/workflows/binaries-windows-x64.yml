@@ -1,3 +1,5 @@
+# Copied and adapted from HLedger -- https://github.com/simonmichael/hledger
+#
 # Runs on any push to ci-windows, and weekly on master.
 # Produces optimised windows binaries,
 # using the default stack.yaml's GHC version.

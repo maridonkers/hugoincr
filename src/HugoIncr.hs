@@ -76,15 +76,15 @@ processFile pool prefix verbose filePath = do
       setModificationTime fp aTime
 
 -- | Custom conduit to process individual files and yield chunks of file records.
-processFileLogicConduit ::
+processFileConduit ::
   MonadIO m =>
   DB.DbConnection ->
   String ->
   Bool ->
   ConduitT FilePath [(String, Int64, String, UTCTime)] m ()
-processFileLogicConduit pool prefix verbose = awaitForever $ \filePath -> do
-  fileRecords <- liftIO $ processFile pool prefix verbose filePath
-  yield fileRecords
+processFileConduit pool prefix verbose = awaitForever $ \filePath -> do
+  frs <- liftIO $ processFile pool prefix verbose filePath
+  yield frs
 
 -- | Process a single FileRecord.
 processRecord ::
@@ -119,7 +119,7 @@ incrementTarget pool verbose path ps target = do
   -- Process paths and add to or update in database.
   runConduitRes $
     sourceDirectoryDeep False rootPath
-      .| processFileLogicConduit pool prefixPath verbose
+      .| processFileConduit pool prefixPath verbose
       .| chunksOfCE chunkSize
       .| mapM_C (liftIO . void . DB.insertFileRecords pool verbose)
 

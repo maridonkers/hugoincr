@@ -98,12 +98,6 @@ processRecord pool prefix verbose (key, fileRecord) = do
   pathExists <- liftIO $ doesPathExist path
   unless pathExists $ liftIO $ DB.deleteFileRecordById pool verbose key path
 
--- | Conduit source a single FileRecord.
-retrieveAllFileRecordsSource ::
-  DB.DbConnection ->
-  ConduitT () (Int64, FileRecord) (ResourceT IO) ()
-retrieveAllFileRecordsSource = DB.retrieveAllFileRecords
-
 -- | Increments files under specified Hugo public.
 incrementTarget ::
   DB.DbConnection ->
@@ -125,5 +119,5 @@ incrementTarget pool verbose path ps target = do
 
   -- Clear records that are (no longer) on filesystem
   runConduitRes $
-    retrieveAllFileRecordsSource pool
+    DB.retrieveAllFileRecords pool
       .| mapM_C (processRecord pool prefixPath verbose)

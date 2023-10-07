@@ -71,6 +71,24 @@ processFile pool prefix verbose filePath = do
     updateFileModifiedTime fp aTime = do
       setModificationTime fp aTime
 
+-- | Process a single FileRecord
+processRecord ::
+  DB.DbConnection ->
+  String ->
+  Bool ->
+  (Int64, FileRecord) ->
+  ResourceT IO ()
+processRecord pool prefix verbose (key, fileRecord) = do
+  let path = prefix ++ fileRecordPathName fileRecord
+  pathExists <- liftIO $ doesPathExist path
+  unless pathExists $ liftIO $ DB.deleteFileRecordById pool verbose key path
+
+-- | Conduit source a single FileRecord
+retrieveAllFileRecordsSource ::
+  DB.DbConnection ->
+  ConduitT () (Int64, FileRecord) (ResourceT IO) ()
+retrieveAllFileRecordsSource = DB.retrieveAllFileRecords
+
 -- | Increments files under specified Hugo public.
 incrementTarget ::
   DB.DbConnection ->
@@ -91,3 +109,6 @@ incrementTarget pool verbose path ps target = do
   unless (null fileRecordsToInsert) $ do
     _keys <- DB.insertFileRecords pool verbose fileRecordsToInsert
     return ()
+
+  -- Clear records that are (no longer) on filesystem
+  runConduitRes $ retrieveAllFileRecordsSource pool .| mapM_C (processRecord pool prefixPath verbose)

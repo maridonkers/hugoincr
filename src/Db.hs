@@ -2,19 +2,22 @@
 
 module Db
   ( connect,
+    deleteFileRecordById,
     getFileRecord,
     insertFileRecord,
     insertFileRecords,
     migrateDb,
     resetDb,
     updateFileRecord,
+    retrieveAllFileRecords,
     DbConnection,
   )
 where
 
 import Control.Monad (when)
+import Control.Monad.IO.Class
 import Control.Monad.Logger (runNoLoggingT) -- , runStdoutLoggingT)
-import Control.Monad.Trans (liftIO)
+import Data.Conduit (ConduitT, yield)
 import Data.Int (Int64)
 import qualified Data.Text as T
 import Data.Time (UTCTime)
@@ -121,3 +124,26 @@ updateFileRecord pool verbose fileId path newSize newChecksum newModifiedTime = 
     updateFile :: Key FileRecord -> Int64 -> String -> UTCTime -> SqlPersistT IO ()
     updateFile fId size checksum modifiedTime = do
       update fId [FileRecordSize =. size, FileRecordMd5Checksum =. checksum, FileRecordModifiedAt =. modifiedTime]
+
+-- | Delete a record by ID.
+deleteFileRecordById ::
+  DbConnection ->
+  Bool ->
+  Int64 ->
+  String ->
+  IO ()
+deleteFileRecordById pool verbose fileId path = do
+  when verbose $ putStrLn $ "Delete " ++ path ++ " file record from database."
+  runSqlPool (deleteWhere [FileRecordId ==. toSqlKey fileId]) pool
+
+-- | Retrieve all FileRecord records from the database as a conduit source.
+retrieveAllFileRecords ::
+  MonadIO m =>
+  DbConnection ->
+  ConduitT () (Int64, FileRecord) m ()
+retrieveAllFileRecords pool = do
+  entities <- liftIO $ runSqlPool action pool
+  mapM_ (\(Entity key val) -> yield (fromSqlKey key, val)) entities
+  where
+    action :: MonadIO m => SqlPersistT m [Entity FileRecord]
+    action = selectList [] []

@@ -62,7 +62,7 @@ argsParser =
 
 -- | Add a version flag to display the program's version.
 versionFlag :: OA.Parser (a -> a)
-versionFlag = OA.infoOption "0.1.0.0" (OA.long "version" <> OA.help "Show version")
+versionFlag = OA.infoOption "0.1.1" (OA.long "version" <> OA.help "Show version")
 
 -- | Add a helper text using the 'helper' function to provide general information about the program.
 argsParserWithHelper :: OA.ParserInfo Args

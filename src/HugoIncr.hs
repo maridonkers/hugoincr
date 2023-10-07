@@ -16,6 +16,7 @@ import System.Directory
 chunkSize :: Int
 chunkSize = 1000
 
+-- | Processes a single file.
 processFile ::
   DB.DbConnection ->
   String ->
@@ -74,7 +75,7 @@ processFile pool prefix verbose filePath = do
     updateFileModifiedTime fp aTime = do
       setModificationTime fp aTime
 
--- Define a custom conduit to process individual files and yield chunks of file records
+-- | Custom conduit to process individual files and yield chunks of file records.
 processFileLogicConduit ::
   MonadIO m =>
   DB.DbConnection ->
@@ -85,7 +86,7 @@ processFileLogicConduit pool prefix verbose = awaitForever $ \filePath -> do
   fileRecords <- liftIO $ processFile pool prefix verbose filePath
   yield fileRecords
 
--- | Process a single FileRecord
+-- | Process a single FileRecord.
 processRecord ::
   DB.DbConnection ->
   String ->
@@ -97,7 +98,7 @@ processRecord pool prefix verbose (key, fileRecord) = do
   pathExists <- liftIO $ doesPathExist path
   unless pathExists $ liftIO $ DB.deleteFileRecordById pool verbose key path
 
--- | Conduit source a single FileRecord
+-- | Conduit source a single FileRecord.
 retrieveAllFileRecordsSource ::
   DB.DbConnection ->
   ConduitT () (Int64, FileRecord) (ResourceT IO) ()

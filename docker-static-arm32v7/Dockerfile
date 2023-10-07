@@ -33,7 +33,7 @@ RUN cabal update
 COPY . /hugoincr
 
 # Build static hugoincr binary
-RUN cd /hugoincr && cabal build --enable-executable-static --with-compiler=/usr/local/bin/ghc-8.10.4 hugoincr
+RUN cd /hugoincr && cabal build --enable-executable-static --with-compiler=/usr/local/bin/ghc-8.10.4 exe:hugoincr
 
 # Strip symbols from binary
 RUN cp /hugoincr/dist-newstyle/build/arm-linux/ghc-*/hugoincr-*/x/hugoincr/build/hugoincr/hugoincr /root/ && strip /root/hugoincr

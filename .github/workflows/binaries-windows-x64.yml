@@ -1,0 +1,152 @@
+# Runs on any push to ci-windows, and weekly on master.
+# Produces optimised windows binaries,
+# using the default stack.yaml's GHC version.
+# Currently runs no tests.
+# Currently using nightly-2023-04-24 (ghc-9.4) to avoid ghc 9.4.5/9.6 windows bugs
+# ( https://gitlab.haskell.org/ghc/ghc/-/issues/23309 , https://gitlab.haskell.org/ghc/ghc/-/issues/23378 )
+
+name: binaries-windows-x64
+
+on:
+  push:
+    branches: [ binaries-windows-x64, binaries ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+
+    - name: Check out
+      uses: actions/checkout@v3
+      # have to fetch everything for git describe for --version
+      with: 
+        fetch-depth: 0        
+
+    - name: Confirm all remaining steps should run
+      run: echo "CONTINUE=true" >> $GITHUB_ENV
+
+    # things to be cached/restored:
+
+    - name: Cache stack global package db
+      id:   stack-global-package-db
+      uses: actions/cache@v3
+      with:
+        path: C:\Users\runneradmin\AppData\Roaming\stack\
+        key: ${{ runner.os }}-appdata-roaming-stack-${{ hashFiles('**.yaml') }}
+        restore-keys: |
+             ${{ runner.os }}-appdata-roaming-stack
+      if: env.CONTINUE
+
+    - name: Cache stack programs dir   # ghc, ghc-included packages and their haddocks, mingw, msys2
+      id:   stack-programs-dir
+      uses: actions/cache@v3
+      with:
+        path: C:\Users\runneradmin\AppData\Local\Programs\stack\
+        # which files signal a change in stack's global db ?
+        # **.yaml includes */package.yaml and stack.yaml* (too many), and hopefully no other changing yamls
+        key: ${{ runner.os }}-appdata-local-programs-stack-${{ hashFiles('**.yaml') }}
+        restore-keys: |
+             ${{ runner.os }}-appdata-local-programs-stack
+      if: env.CONTINUE
+
+    - name: Cache .stack-work
+      uses: actions/cache@v3
+      with:
+        path: .stack-work
+        key: ${{ runner.os }}-stack-work-${{ hashFiles('**.yaml') }}
+        restore-keys: |
+             ${{ runner.os }}-stack-work
+      if: env.CONTINUE
+
+    - name: Cache hugoincr/.stack-work
+      uses: actions/cache@v3
+      with:
+        path: hugoincr/.stack-work
+        key: ${{ runner.os }}-hugoincr-stack-work-${{ hashFiles('hugoincr/package.yaml') }}
+        restore-keys: |
+             ${{ runner.os }}-hugoincr-stack-work
+      if: env.CONTINUE
+
+    # - name: showStuff
+    #   run: |
+    #     ls -lFRa /c/users/runneradmin/appdata/roaming/stack
+    #     ls -lFRa /c/users/runneradmin/appdata/local/programs/stack
+
+    # actions:
+
+    # - name: Add stack local bin to PATH
+    #   run: echo "::add-path::C:\Users\runneradmin\AppData\Roaming\stack\local\bin"
+
+    # - name: Install stack
+    #   run: |
+    #     mkdir -p ~/.local/bin
+    #     export PATH=~/.local/bin:$PATH
+    #     if [[ ! -x ~/.local/bin/stack ]]; then curl -sL https://get.haskellstack.org/stable/linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'; chmod a+x ~/.local/bin/stack; fi
+    #     $stack --version
+    #   env:
+    #     stack: ${{ matrix.plan.stack }}
+
+    - name: Install stack
+      #if: steps.stack-programs-dir.outputs.cache-hit != 'true'
+      # this step is needed to get stack.exe into PATH, for now
+      run: |
+        curl -sL https://get.haskellstack.org/stable/windows-x86_64.zip -o stack.zip
+        7z x stack.zip stack.exe
+        which stack
+        stack --version
+        which ./stack
+        ./stack --version
+      if: env.CONTINUE
+
+    - name: Install GHC
+      # if: steps.stack-programs-dir.outputs.cache-hit != 'true'
+      # set PATH=C:\Users\runneradmin\AppData\Local\Programs\stack\local\bin;%PATH%
+      run: |
+        ./stack --no-terminal setup --install-ghc --resolver nightly-2023-04-24
+      if: env.CONTINUE
+
+    # - name: Install shelltestrunner
+    ## - export PATH=~/.local/bin:$PATH
+    # - if [[ ! -x ~/.local/bin/shelltest ]]; then stack install shelltestrunner-1.9; fi
+    # - shelltest --version
+
+    - name: Install haskell deps
+      run: |
+        ./stack --no-terminal build --only-dependencies --dry-run --resolver nightly-2023-04-24
+        ./stack --no-terminal build --only-dependencies --resolver nightly-2023-04-24
+      if: env.CONTINUE
+
+    # use whichever GHC is in default stack.yaml
+
+    - name: Build all hugoincr modules warning free, optimised and minimised
+      run: |
+        ./stack --no-terminal install --force-dirty --ghc-options=-fforce-recomp --ghc-options=-Werror --resolver nightly-2023-04-24
+      # --ghc-options=-split-sections doesn't work on windows, "too many sections"
+      # --pedantic
+      if: env.CONTINUE
+
+    # run hugoincr-lib/hugoincr functional tests, skipping the ones for addons
+    ## - export PATH=~/.local/bin:$PATH
+    #- COLUMNS=80 stack exec -- shelltest --execdir -j16 hugoincr/test -x /_ -x /addons -x ledger-compat/baseline -x ledger-compat/regress -x ledger-compat/collected
+
+    # artifacts:
+
+    - name: Gather binaries
+      run: |
+        mkdir tmp
+        cd tmp
+        cp /C/Users/runneradmin/AppData/Roaming/local/bin/hugoincr.exe     .
+        strip hugoincr.exe
+      if: env.CONTINUE
+             
+    - name: Create binaries artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: hugoincr-windows-x64
+        path: |
+          tmp/hugoincr.exe
+      if: env.CONTINUE

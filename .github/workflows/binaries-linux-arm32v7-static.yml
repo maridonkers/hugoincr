@@ -1,0 +1,55 @@
+# Copied and adapted from HLedger -- https://github.com/simonmichael/hledger
+#
+# Runs on any push to ci-linux-arm32v7.
+# Produces optimised static arm32v7 linux  binaries,
+# using GHC 8.10.4 and cabal.
+# Currently runs no tests.
+# Slow, will probably time out.
+
+name: binaries-linux-arm32v7-static
+
+on:
+  push:
+    branches: [ binaries-linux-arm32v7-static ]
+    #tags:
+    #  - '[0-9]+.[0-9]+'
+    #  - '[0-9]+.[0-9]+-*'
+    #  - '[0-9]+.[0-9]+.[0-9]+'
+    #  - '[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          file: ./docker-static-arm32v7/Dockerfile
+          platforms: linux/arm
+          tags: hugoincr-linux-static-arm32v7:latest
+          load: true
+
+      - name: Gather binaries from docker
+        run: |
+          container_id=$(docker create hugoincr-linux-static-arm32v7:latest)
+          docker cp $container_id:/root/hugoincr tmp
+          docker rm -v $container_id
+          cd tmp
+          tar cvf hugoincr-linux-static-arm32v7.tar hugoincr
+
+      # upload-artifact loses execute permissions, so we tar the binaries to preserve them.
+      # github UI always zips artifacts when they are downloaded, so we don't bother compressing the tar.
+      # Unfortunately it means users must both unzip and untar.
+      - name: Upload binaries artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: hugoincr-linux-static-arm32v7
+          path: tmp/hugoincr-linux-static-arm32v7.tar

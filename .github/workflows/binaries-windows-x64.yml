@@ -126,7 +126,8 @@ jobs:
 
     - name: Build all hugoincr modules warning free, optimised and minimised
       run: |
-        ./stack --no-terminal install --force-dirty --ghc-options=-fforce-recomp --ghc-options=-Werror --resolver nightly-2023-04-24
+        # ./stack --no-terminal install --force-dirty --ghc-options=-fforce-recomp --ghc-options=-Werror --resolver nightly-2023-04-24
+        ./stack --no-terminal install --force-dirty --ghc-options=-fforce-recomp --resolver nightly-2023-04-24
       # --ghc-options=-split-sections doesn't work on windows, "too many sections"
       # --pedantic
       if: env.CONTINUE

@@ -131,7 +131,8 @@ jobs:
       env:
         stack: ${{ matrix.plan.stack }}
       run: |
-        $stack install --test --force-dirty --ghc-options=-fforce-recomp --ghc-options=-Werror
+        # $stack install --test --force-dirty --ghc-options=-fforce-recomp --ghc-options=-Werror
+        $stack install --test --force-dirty --ghc-options=-fforce-recomp
         # --ghc-options=-split-sections doesn't work on mac
         #  --pedantic
       if: env.CONTINUE

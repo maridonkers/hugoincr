@@ -1,7 +1,7 @@
 module HugoIncr (incrementTarget) where
 
 import Conduit
-import Control.Monad (unless, when)
+import Control.Monad (unless, void, when)
 import Crypto.Hash (Digest, MD5)
 import Crypto.Hash.Conduit (sinkHash)
 import qualified Data.ByteString as BS
@@ -12,6 +12,9 @@ import Data.Time (UTCTime)
 import qualified Db as DB
 import Models
 import System.Directory
+
+chunkSize :: Int
+chunkSize = 1000
 
 processFile ::
   DB.DbConnection ->
@@ -71,6 +74,17 @@ processFile pool prefix verbose filePath = do
     updateFileModifiedTime fp aTime = do
       setModificationTime fp aTime
 
+-- Define a custom conduit to process individual files and yield chunks of file records
+processFileLogicConduit ::
+  MonadIO m =>
+  DB.DbConnection ->
+  String ->
+  Bool ->
+  ConduitT FilePath [(String, Int64, String, UTCTime)] m ()
+processFileLogicConduit pool prefix verbose = awaitForever $ \filePath -> do
+  fileRecords <- liftIO $ processFile pool prefix verbose filePath
+  yield fileRecords
+
 -- | Process a single FileRecord
 processRecord ::
   DB.DbConnection ->
@@ -100,15 +114,15 @@ incrementTarget ::
 incrementTarget pool verbose path ps target = do
   let rootPath = path ++ ps ++ target
   let prefixPath = path ++ ps
-  fileRecordsToInsert <-
-    runConduitRes
-      ( sourceDirectoryDeep False rootPath
-          .| concatMapMC (liftIO . processFile pool prefixPath verbose)
-          .| sinkList
-      )
-  unless (null fileRecordsToInsert) $ do
-    _keys <- DB.insertFileRecords pool verbose fileRecordsToInsert
-    return ()
+
+  -- Process paths and add to or update in database.
+  runConduitRes $
+    sourceDirectoryDeep False rootPath
+      .| processFileLogicConduit pool prefixPath verbose
+      .| chunksOfCE chunkSize
+      .| mapM_C (liftIO . void . DB.insertFileRecords pool verbose)
 
   -- Clear records that are (no longer) on filesystem
-  runConduitRes $ retrieveAllFileRecordsSource pool .| mapM_C (processRecord pool prefixPath verbose)
+  runConduitRes $
+    retrieveAllFileRecordsSource pool
+      .| mapM_C (processRecord pool prefixPath verbose)

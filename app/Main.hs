@@ -83,7 +83,7 @@ main = do
   tpExists <- doesDirectoryExist tp
   if tpExists
     then do
-      pool <- connect verbose path ps dbName
+      pool <- connectDb verbose path ps dbName
       if reset
         then resetDb pool verbose
         else do

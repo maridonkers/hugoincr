@@ -1,7 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Db
-  ( connect,
+  ( connectDb,
     deleteFileRecordById,
     getFileRecord,
     insertFileRecord,
@@ -14,10 +12,10 @@ module Db
   )
 where
 
+-- , runStdoutLoggingT)
+import Conduit
 import Control.Monad (when)
-import Control.Monad.IO.Class
-import Control.Monad.Logger (runNoLoggingT) -- , runStdoutLoggingT)
-import Data.Conduit (ConduitT, yield)
+import Control.Monad.Logger (runNoLoggingT)
 import Data.Int (Int64)
 import qualified Data.Text as T
 import Data.Time (UTCTime)
@@ -28,13 +26,13 @@ import Models
 type DbConnection = ConnectionPool
 
 -- | Connects to database (creating if not exists already).
-connect ::
+connectDb ::
   Bool ->
   String ->
   String ->
   String ->
   IO DbConnection
-connect verbose path ps name = do
+connectDb verbose path ps name = do
   let dbPath = path ++ ps ++ name
   when verbose $ liftIO $ putStrLn $ "Connecting to database " ++ dbPath
   runNoLoggingT $ createSqlitePool (T.pack dbPath) 1
@@ -90,7 +88,12 @@ insertFileRecords pool verbose records = do
   when verbose $ liftIO $ putStrLn $ "Adding " ++ show (length records) ++ " records to database."
   runNoLoggingT $ runSqlPool (insertMany records') pool
   where
-    records' = map (\(path, size, digest, mTime) -> FileRecord path size digest mTime) records
+    records' =
+      map
+        ( \(path, size, digest, mTime) ->
+            FileRecord path size digest mTime
+        )
+        records
 
 -- | Gets a file record from the database.
 getFileRecord ::
@@ -123,7 +126,12 @@ updateFileRecord pool verbose fileId path newSize newChecksum newModifiedTime = 
   where
     updateFile :: Key FileRecord -> Int64 -> String -> UTCTime -> SqlPersistT IO ()
     updateFile fId size checksum modifiedTime = do
-      update fId [FileRecordSize =. size, FileRecordMd5Checksum =. checksum, FileRecordModifiedAt =. modifiedTime]
+      update
+        fId
+        [ FileRecordSize =. size,
+          FileRecordMd5Checksum =. checksum,
+          FileRecordModifiedAt =. modifiedTime
+        ]
 
 -- | Delete a record by ID.
 deleteFileRecordById ::

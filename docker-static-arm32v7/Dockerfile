@@ -1,3 +1,5 @@
+# Copied and adapted from HLedger -- https://github.com/simonmichael/hledger
+#
 FROM arm32v7/ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive

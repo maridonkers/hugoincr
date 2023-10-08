@@ -30,7 +30,7 @@ processFile pool prefix verbose filePath = do
   md5Digest <-
     runConduitRes $
       sourceFile filePath
-        .| (sinkHash :: ConduitT BS.ByteString o (ResourceT IO) (Digest MD5))
+        .| (sinkHash :: ConduitT BS.ByteString Void (ResourceT IO) (Digest MD5))
   let md5Checksum = show md5Digest
 
   mFileRecord <- DB.getFileRecord pool path

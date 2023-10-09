@@ -12,7 +12,6 @@ module Db
   )
 where
 
--- , runStdoutLoggingT)
 import Conduit
 import Control.Monad (when)
 import Control.Monad.Logger (runNoLoggingT)
@@ -56,7 +55,7 @@ migrateDb ::
   Bool ->
   IO ()
 migrateDb pool verbose = do
-  result <- runNoLoggingT $ runSqlPool (runMigrationQuiet migrateAll) pool
+  result <- runSqlPool (runMigrationQuiet migrateAll) pool
 
   when verbose $
     case result of
@@ -76,7 +75,7 @@ insertFileRecord ::
   IO (Key FileRecord)
 insertFileRecord pool verbose path size digest mTime = do
   when verbose $ liftIO $ putStrLn $ "Adding " ++ path
-  runNoLoggingT $ runSqlPool (insert $ FileRecord path size digest mTime) pool
+  runSqlPool (insert $ FileRecord path size digest mTime) pool
 
 -- | Inserts several file records in the database.
 insertFileRecords ::
@@ -86,7 +85,7 @@ insertFileRecords ::
   IO [Key FileRecord]
 insertFileRecords pool verbose records = do
   when verbose $ liftIO $ putStrLn $ "Adding " ++ show (length records) ++ " records to database."
-  runNoLoggingT $ runSqlPool (insertMany records') pool
+  runSqlPool (insertMany records') pool
   where
     records' =
       map

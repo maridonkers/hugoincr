@@ -9,3 +9,4 @@
 /.hugoincr.db-wal
 /public/
 /releases/
+/docker-static-linux-x64/hugoincr

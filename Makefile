@@ -38,9 +38,11 @@ run:
 install:
 	stack install
 
+# binutils-gold curl gcc g++ git gmp-dev ncurses-dev ncurses-static
+# libffi-dev make xz tar perl zlib-dev zlib-static
 release:
 	hpack
-	stack build
+	cabal build --enable-executable-static exe:hugoincr
 
 help:
 	@grep '^[^      #:]\+:' Makefile | sed -e 's/:[^:]*//g'
